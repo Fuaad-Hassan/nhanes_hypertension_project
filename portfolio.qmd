@@ -1,0 +1,208 @@
+---
+title: "NHANES Hypertension Analysis: Uncovering Undiagnosed Risk"
+author: "Fuaad Hassan"
+date: last-modified
+format:
+  html:
+    theme: cosmo
+    toc: true
+    code-fold: show
+---
+
+## Executive Summary
+
+This study analyzes nationally representative survey data from the **National Health and Nutrition Examination Survey (NHANES)** to evaluate demographic patterns in hypertension and identify key risk factors associated with remaining **undiagnosed**.
+
+Using proper survey design adjustments (`psu`, `strata`, and `weight_mec`), I evaluate biological blood pressure readings against self-reported diagnoses and fit a weighted logistic regression model.
+
+---
+
+## Data Pipeline & Survey Methodology
+
+1. **Ingest (`01_ingest.R`)**: Downloaded demographic (`DEMO`), blood pressure (`BPX`), and questionnaire (`BPQ`) datasets directly from CDC servers via `nhanesA`.
+2. **Clean (`02_clean.R`)**: Standardized blood pressure measurements, filtered for adult records ($\ge 18$), and categorized patients into four distinct hypertension states: *Healthy*, *Managed*, *Uncontrolled*, and *Undiagnosed*.
+3. **Descriptive (`03_descriptive.R`)**: Constructed a complex survey design object using `srvyr` and calculated population-weighted demographic summaries.
+4. **Inferential (`04_inferential.R`)**: Restricted analysis strictly to the biologically hypertensive subpopulation using domain estimation (preserving full PSU/Strata variance architecture) and ran a survey-weighted logistic regression (`svyglm`).
+
+---
+
+```{r}
+#| label: setup-and-data-prep
+#| warning: false
+#| message: false
+
+library(dplyr)
+library(survey)
+library(srvyr)
+library(broom)
+library(ggplot2)
+library(knitr)
+
+# 1. Load Processed Data
+final_df <- readRDS("data/processed/nhanes_processed.rds")
+
+# 2. Create Age Brackets and Undiagnosed Target Flag
+df_prepared <- final_df %>%
+  mutate(
+    age_bracket = cut(age, breaks = c(17, 39, 59, Inf), labels = c("18-39", "40-59", "60+")),
+    undiagnosed_flag = factor(
+      ifelse(htn_status == "Undiagnosed", "Undiagnosed", "Diagnosed"),
+      levels = c("Diagnosed", "Undiagnosed")
+    )
+  )
+
+# 3. Initialize Full Survey Design (Preserves PSU/Strata Variance)
+full_svy <- df_prepared %>%
+  as_survey_design(
+    ids = psu,
+    strata = strata,
+    weights = weight_mec,
+    nest = TRUE
+  )
+
+# 4. Domain Subpopulation: Biologically Hypertensive Adults Only
+htn_svy <- full_svy %>% filter(is_biological_htn == TRUE)
+
+# 5. Fit Survey-Weighted Logistic Regression
+model_svy <- svyglm(
+  undiagnosed_flag ~ age + gender + income_ratio,
+  design = htn_svy,
+  family = quasibinomial()
+)
+
+model_results <- tidy(model_svy, exponentiate = TRUE, conf.int = TRUE)
+
+```
+
+## Key Results
+
+### 1. Weighted Population Distribution
+
+Survey-weighted proportions across age brackets demonstrate a clear pattern: while older adults ($\ge 60$) have higher overall rates of hypertension, the proportion of **undiagnosed** cases peaks significantly in mid-adulthood ($40-59$).
+
+```{r}
+#| label: fig-descriptive
+#| fig-cap: "Weighted Proportion of Hypertension Status by Age Group"
+#| fig-width: 8
+#| fig-height: 5
+#| warning: false
+#| message: false
+
+# Calculate weighted proportions by age bracket and status
+df_plot <- full_svy %>%
+  group_by(age_bracket, htn_status) %>%
+  summarize(prop = survey_mean(), .groups = "drop")
+
+ggplot(df_plot, aes(x = age_bracket, y = prop, fill = htn_status)) +
+  geom_col(position = "fill", color = "black", alpha = 0.85) +
+  scale_y_continuous(labels = scales::percent) +
+  scale_fill_manual(
+    values = c(
+      "Healthy"      = "#4CAF50",
+      "Managed"      = "#2196F3",
+      "Uncontrolled" = "#FF9800",
+      "Undiagnosed"  = "#F44336"
+    )
+  ) +
+  theme_minimal() +
+  labs(
+    title = "True Hypertension Status by Age Group",
+    subtitle = "Adjusted using NHANES complex survey weights",
+    x = "Age Bracket",
+    y = "Weighted Proportion of Population",
+    fill = "Status"
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", size = 14),
+    legend.position = "bottom"
+  )
+
+```
+
+---
+
+### 2. Predictors of Remaining Undiagnosed
+
+The table below details the survey-adjusted Odds Ratios for predicting whether a biologically hypertensive individual remains undiagnosed:
+
+```{r}
+#| label: model-results-table
+model_results %>%
+  filter(term != "(Intercept)") %>%
+  mutate(
+    term = case_when(
+      term == "age"          ~ "Age (per year)",
+      term == "genderFemale" ~ "Female (vs. Male)",
+      term == "income_ratio" ~ "Poverty-Income Ratio",
+      TRUE ~ term
+    ),
+    p_formatted = ifelse(p.value < 0.001, "< 0.001", sprintf("%.3f", p.value))
+  ) %>%
+  select(
+    Predictor = term, 
+    `Odds Ratio (OR)` = estimate, 
+    `95% CI Lower` = conf.low, 
+    `95% CI Upper` = conf.high, 
+    `p-value` = p_formatted
+  ) %>%
+  kable(digits = 3, caption = "Survey-Weighted Logistic Regression Model Results")
+
+```
+
+```{r}
+#| label: fig-forest-plot
+#| fig-cap: "Forest Plot of Odds Ratios for Undiagnosed Hypertension"
+#| fig-width: 8
+#| fig-height: 4.5
+#| warning: false
+#| message: false
+
+plot_data <- model_results %>% 
+  filter(term != "(Intercept)") %>%
+  mutate(
+    term = case_when(
+      term == "age"          ~ "Age (per year)",
+      term == "genderFemale" ~ "Female (vs. Male)",
+      term == "income_ratio" ~ "Poverty-Income Ratio",
+      TRUE ~ term
+    ),
+    term = factor(term, levels = c("Poverty-Income Ratio", "Female (vs. Male)", "Age (per year)"))
+  )
+
+ggplot(plot_data, aes(x = estimate, y = term)) +
+  geom_vline(xintercept = 1, linetype = "dashed", color = "red", linewidth = 1) +
+  geom_errorbar(aes(xmin = conf.low, xmax = conf.high), width = 0.2, color = "#333333") +
+  geom_point(size = 4, color = "#2196F3") +
+  scale_y_discrete(expand = expansion(mult = c(0.3, 0.3))) +
+  theme_minimal() +
+  labs(
+    title = "Predictors of Remaining Undiagnosed with Hypertension",
+    x = "Odds Ratio (OR > 1 means higher risk of being undiagnosed)",
+    y = "Predictor Variable"
+  ) +
+  theme(
+    plot.title = element_text(face = "bold", size = 12),
+    axis.text.y = element_text(size = 11, face = "bold"),
+    axis.title.y = element_text(size = 11, face = "bold", margin = margin(r = 15))
+  )
+
+```
+
+---
+
+### 3. Model Interpretation
+
+Based on the survey-weighted logistic regression, I observed the following within the hypertensive subpopulation:
+
+* **Age:** There is a statistically significant negative association between age and the odds of remaining undiagnosed (**OR = 0.963, p < 0.001**). As age increases, patients are significantly less likely to remain undiagnosed, likely due to more frequent interactions with the healthcare system.
+* **Income Ratio:** Higher income shows a slight, marginally significant positive association with remaining undiagnosed (**OR = 1.08, p = 0.0498**).
+* **Gender:** There is no statistically significant difference in diagnosis rates between females and males in this cohort (**OR = 1.13, p = 0.428**), as the 95% confidence interval widely crosses 1.0.
+
+---
+
+## Conclusion & Health Policy Implications
+
+* **Screening Focus:** Outreach campaigns should target young and middle-aged adults (ages 18–59), who exhibit high proportions of undiagnosed hypertension despite lower overall prevalence.
+* **Methodological Rigor:** Standard non-survey analysis would misestimate standard errors; maintaining full PSU/Strata architecture via domain filtering (`srvyr::filter`) was essential to ensuring mathematically valid statistical inferences.
+
+```
