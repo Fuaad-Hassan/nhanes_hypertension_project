@@ -1,0 +1,8 @@
+.Rhistory
+.RData
+.Ruserdata
+data/raw/
+data/processed/
+*.rds
+.Rproj.user/
+.vscode/
