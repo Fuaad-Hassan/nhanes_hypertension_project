@@ -29,11 +29,11 @@ A critical highlight of this project is the adherence to survey statistical theo
 
 ```text
 ├── R/
-│   ├── 01_ingest.R        # Direct API ingestion from CDC via nhanesA
-│   ├── 02_clean.R         # BP standardization & 4-tier status classification
-│   ├── 03_descriptive.R    # Weighted population proportions & survey summaries
-│   └── 04_inferential.R   # Survey-weighted logistic regression (svyglm)
-├── data/                  # Processed RDS datasets
-├── portfolio.qmd          # Quarto source document
-├── index.html             # Rendered standalone HTML report
+│   ├── 01_ingest.R        
+│   ├── 02_clean.R        
+│   ├── 03_descriptive.R    
+│   └── 04_inferential.R  
+├── data/                  
+├── portfolio.qmd         
+├── index.html           
 └── README.md
