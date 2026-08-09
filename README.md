@@ -1,38 +1,48 @@
 # 🩺 NHANES Hypertension Analysis: Uncovering Undiagnosed Risk
 
-![R](https://img.shields.io/badge/R-4.3+-276DC3.svg)
-![Quarto](https://img.shields.io/badge/Quarto-1.3+-75AADB.svg)
-![Domain](https://img.shields.io/badge/Domain-Public_Health_&_Epidemiology-green.svg)
-
-An end-to-end data science pipeline analyzing complex survey data from the **National Health and Nutrition Examination Survey (NHANES)** to evaluate demographic trends in hypertension and model predictors of remaining **undiagnosed**.
-
+👉 **[Click here to view the full interactive report](https://www.google.com/search?q=https://fuaad-hassan.github.io/nhanes_hypertension_project/portfolio.html)**
 
 ---
 
-## 📌 Executive Summary
-Hypertension is a primary driver of cardiovascular disease, yet millions remain undiagnosed. This project ingests CDC/NHANES survey data, adjusts for complex survey sampling design (`PSUs`, `Strata`, and `MEC weights`), and fits a survey-weighted logistic regression model to identify key demographics at risk of under-diagnosis.
+## Overview
 
-### Key Insights
-* **Age Dynamics:** Older adults have a higher overall prevalence of hypertension, but **middle-aged adults (18–59)** exhibit the highest proportion of *undiagnosed* cases.
-* **Predictive Drivers:** Survey-adjusted logistic regression shows that each additional year of age reduces the odds of remaining undiagnosed (**OR = 0.963, p < 0.001**), likely due to increased healthcare interaction frequency.
+Millions of Americans live with high blood pressure without realizing it. This project analyzes CDC survey data from the **National Health and Nutrition Examination Survey (NHANES)** to figure out who is slipping through the cracks.
 
----
-
-## 🛠️ Methodological Highlights: Complex Survey Weights
-A critical highlight of this project is the adherence to survey statistical theory:
-* **Domain Estimation:** Rather than filtering the raw dataset prior to analysis (which destroys variance structure), the full dataset is initialized into a survey design object using `srvyr::as_survey_design()`. Subpopulations are isolated using `srvyr::filter()` to preserve full PSU and Strata variance architecture.
+By comparing biological blood pressure readings against self-reported medical histories, I evaluate demographic patterns in hypertension and fit survey-weighted logistic regression models to identify key predictors of remaining **undiagnosed**.
 
 ---
 
-## 📂 Repository Structure
+## Key Findings
+
+* **The Mid-Life Gap:** Overall hypertension prevalence is highest in older adults ($60+$), but the proportion of **undiagnosed cases peaks in middle-aged adults (18–59)**.
+* **Age as a Predictor:** Each additional year of age slightly reduces the odds of staying undiagnosed (**OR = 0.963, p < 0.001**). This aligns with clinical intuition: older individuals interact with the healthcare system more frequently, increasing their chances of getting diagnosed.
+
+---
+
+## Statistical Methodology
+
+Standard statistical methods assume simple random sampling. Because NHANES uses a complex multi-stage cluster design, applying standard standard error formulas yields biased results.
+
+To preserve proper variance architecture:
+
+* **Survey Design Object:** Built using `srvyr::as_survey_design()` incorporating Primary Sampling Units (`psu`), stratification (`strata`), and examination weights (`weight_mec`).
+* **Domain Estimation:** Rather than subsetting the dataset before setting up the survey design (which destroys degrees of freedom and standard error estimation), subpopulations were isolated using design-aware filtering (`srvyr::filter`).
+
+---
+
+## Project Structure
 
 ```text
 ├── R/
-│   ├── 01_ingest.R        
-│   ├── 02_clean.R        
-│   ├── 03_descriptive.R    
-│   └── 04_inferential.R  
-├── data/                  
-├── portfolio.qmd         
-├── index.html           
+│   ├── 01_ingest.R       # Pulls DEMO, BPX, and BPQ datasets from CDC via nhanesA
+│   ├── 02_clean.R        # Cleans blood pressure metrics and constructs 4-tier status
+│   ├── 03_descriptive.R  # Generates weighted population summaries and plots
+│   └── 04_inferential.R  # Fits survey-weighted logistic regression models (svyglm)
+├── data/                 # Raw and processed RDS files (ignored by git)
+├── portfolio.qmd         # Main Quarto source document
+├── index.html            # Compiled HTML report served on GitHub Pages
 └── README.md
+
+quarto render portfolio.qmd --to html
+
+```
