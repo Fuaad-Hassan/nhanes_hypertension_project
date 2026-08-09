@@ -6,7 +6,6 @@
 
 An end-to-end data science pipeline analyzing complex survey data from the **National Health and Nutrition Examination Survey (NHANES)** to evaluate demographic trends in hypertension and model predictors of remaining **undiagnosed**.
 
-🔗 **[View Live Interactive Report Here](https://YOUR-GITHUB-USERNAME.github.io/YOUR-REPO-NAME/)**
 
 ---
 
