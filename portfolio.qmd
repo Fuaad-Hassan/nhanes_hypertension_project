@@ -38,10 +38,8 @@ library(broom)
 library(ggplot2)
 library(knitr)
 
-# 1. Load Processed Data
 final_df <- readRDS("data/processed/nhanes_processed.rds")
 
-# 2. Create Age Brackets and Undiagnosed Target Flag
 df_prepared <- final_df %>%
   mutate(
     age_bracket = cut(age, breaks = c(17, 39, 59, Inf), labels = c("18-39", "40-59", "60+")),
@@ -51,7 +49,6 @@ df_prepared <- final_df %>%
     )
   )
 
-# 3. Initialize Full Survey Design (Preserves PSU/Strata Variance)
 full_svy <- df_prepared %>%
   as_survey_design(
     ids = psu,
@@ -60,10 +57,8 @@ full_svy <- df_prepared %>%
     nest = TRUE
   )
 
-# 4. Domain Subpopulation: Biologically Hypertensive Adults Only
 htn_svy <- full_svy %>% filter(is_biological_htn == TRUE)
 
-# 5. Fit Survey-Weighted Logistic Regression
 model_svy <- svyglm(
   undiagnosed_flag ~ age + gender + income_ratio,
   design = htn_svy,
@@ -205,4 +200,3 @@ Based on the survey-weighted logistic regression, I observed the following withi
 * **Screening Focus:** Outreach campaigns should target young and middle-aged adults (ages 18–59), who exhibit high proportions of undiagnosed hypertension despite lower overall prevalence.
 * **Methodological Rigor:** Standard non-survey analysis would misestimate standard errors; maintaining full PSU/Strata architecture via domain filtering (`srvyr::filter`) was essential to ensuring mathematically valid statistical inferences.
 
-```

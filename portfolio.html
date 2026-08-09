@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Fuaad Hassan">
-<meta name="dcterms.date" content="2026-08-06">
+<meta name="dcterms.date" content="2026-08-10">
 
 <title>NHANES Hypertension Analysis: Uncovering Undiagnosed Risk</title>
 <style>
@@ -143,7 +143,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">August 6, 2026</p>
+      <p class="date">August 10, 2026</p>
     </div>
   </div>
   
@@ -180,39 +180,34 @@ window.Quarto = {
 <span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(ggplot2)</span>
 <span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="fu">library</span>(knitr)</span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># 1. Load Processed Data</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>final_df <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"data/processed/nhanes_processed.rds"</span>)</span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co"># 2. Create Age Brackets and Undiagnosed Target Flag</span></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>df_prepared <span class="ot">&lt;-</span> final_df <span class="sc">%&gt;%</span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>    <span class="at">age_bracket =</span> <span class="fu">cut</span>(age, <span class="at">breaks =</span> <span class="fu">c</span>(<span class="dv">17</span>, <span class="dv">39</span>, <span class="dv">59</span>, <span class="cn">Inf</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"18-39"</span>, <span class="st">"40-59"</span>, <span class="st">"60+"</span>)),</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">undiagnosed_flag =</span> <span class="fu">factor</span>(</span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>      <span class="fu">ifelse</span>(htn_status <span class="sc">==</span> <span class="st">"Undiagnosed"</span>, <span class="st">"Undiagnosed"</span>, <span class="st">"Diagnosed"</span>),</span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>      <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Diagnosed"</span>, <span class="st">"Undiagnosed"</span>)</span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>    )</span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a><span class="co"># 3. Initialize Full Survey Design (Preserves PSU/Strata Variance)</span></span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>full_svy <span class="ot">&lt;-</span> df_prepared <span class="sc">%&gt;%</span></span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_survey_design</span>(</span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">ids =</span> psu,</span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">strata =</span> strata,</span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">weights =</span> weight_mec,</span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">nest =</span> <span class="cn">TRUE</span></span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="co"># 4. Domain Subpopulation: Biologically Hypertensive Adults Only</span></span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>htn_svy <span class="ot">&lt;-</span> full_svy <span class="sc">%&gt;%</span> <span class="fu">filter</span>(is_biological_htn <span class="sc">==</span> <span class="cn">TRUE</span>)</span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a><span class="co"># 5. Fit Survey-Weighted Logistic Regression</span></span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>model_svy <span class="ot">&lt;-</span> <span class="fu">svyglm</span>(</span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>  undiagnosed_flag <span class="sc">~</span> age <span class="sc">+</span> gender <span class="sc">+</span> income_ratio,</span>
-<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>  <span class="at">design =</span> htn_svy,</span>
-<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="fu">quasibinomial</span>()</span>
-<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>model_results <span class="ot">&lt;-</span> <span class="fu">tidy</span>(model_svy, <span class="at">exponentiate =</span> <span class="cn">TRUE</span>, <span class="at">conf.int =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>final_df <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"data/processed/nhanes_processed.rds"</span>)</span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>df_prepared <span class="ot">&lt;-</span> final_df <span class="sc">%&gt;%</span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">age_bracket =</span> <span class="fu">cut</span>(age, <span class="at">breaks =</span> <span class="fu">c</span>(<span class="dv">17</span>, <span class="dv">39</span>, <span class="dv">59</span>, <span class="cn">Inf</span>), <span class="at">labels =</span> <span class="fu">c</span>(<span class="st">"18-39"</span>, <span class="st">"40-59"</span>, <span class="st">"60+"</span>)),</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">undiagnosed_flag =</span> <span class="fu">factor</span>(</span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>      <span class="fu">ifelse</span>(htn_status <span class="sc">==</span> <span class="st">"Undiagnosed"</span>, <span class="st">"Undiagnosed"</span>, <span class="st">"Diagnosed"</span>),</span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>      <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Diagnosed"</span>, <span class="st">"Undiagnosed"</span>)</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>    )</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>full_svy <span class="ot">&lt;-</span> df_prepared <span class="sc">%&gt;%</span></span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>  <span class="fu">as_survey_design</span>(</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">ids =</span> psu,</span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">strata =</span> strata,</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>    <span class="at">weights =</span> weight_mec,</span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">nest =</span> <span class="cn">TRUE</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>  )</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>htn_svy <span class="ot">&lt;-</span> full_svy <span class="sc">%&gt;%</span> <span class="fu">filter</span>(is_biological_htn <span class="sc">==</span> <span class="cn">TRUE</span>)</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>model_svy <span class="ot">&lt;-</span> <span class="fu">svyglm</span>(</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>  undiagnosed_flag <span class="sc">~</span> age <span class="sc">+</span> gender <span class="sc">+</span> income_ratio,</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>  <span class="at">design =</span> htn_svy,</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="fu">quasibinomial</span>()</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>)</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>model_results <span class="ot">&lt;-</span> <span class="fu">tidy</span>(model_svy, <span class="at">exponentiate =</span> <span class="cn">TRUE</span>, <span class="at">conf.int =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
@@ -403,7 +398,6 @@ Figure&nbsp;2: Forest Plot of Odds Ratios for Undiagnosed Hypertension
 <li><strong>Screening Focus:</strong> Outreach campaigns should target young and middle-aged adults (ages 18–59), who exhibit high proportions of undiagnosed hypertension despite lower overall prevalence.</li>
 <li><strong>Methodological Rigor:</strong> Standard non-survey analysis would misestimate standard errors; maintaining full PSU/Strata architecture via domain filtering (<code>srvyr::filter</code>) was essential to ensuring mathematically valid statistical inferences.</li>
 </ul>
-<p>```</p>
 </section>
 
 </main>
