@@ -1,6 +1,6 @@
 # 🩺 NHANES Hypertension Analysis: Uncovering Undiagnosed Risk
 
-👉 **[Click here to view the full interactive report]([https://www.google.com/search?q=https://fuaad-hassan.github.io/nhanes_hypertension_project/portfolio.html](https://fuaad-hassan.github.io/nhanes_hypertension_project/portfolio.html))**
+👉 **[Click here to view the full interactive report](https://fuaad-hassan.github.io/nhanes_hypertension_project/portfolio.html)**
 
 ---
 
