@@ -1,3 +1,7 @@
+Here is a polished, human-written version of your `README.md`. It drops the AI buzzwords ("testament", "critical highlight", "adherence to theory"), gets straight to the point, and puts your live report link right at the top where recruiters and reviewers will actually see it.
+
+---
+
 # 🩺 NHANES Hypertension Analysis: Uncovering Undiagnosed Risk
 
 👉 **[Click here to view the full interactive report](https://fuaad-hassan.github.io/nhanes_hypertension_project/portfolio.html)**
@@ -43,6 +47,27 @@ To preserve proper variance architecture:
 ├── index.html            # Compiled HTML report served on GitHub Pages
 └── README.md
 
+```
+
+---
+
+## Quickstart
+
+To reproduce this analysis locally:
+
+1. **Clone the repo:**
+```bash
+git clone https://github.com/Fuaad-Hassan/nhanes_hypertension_project.git
+cd nhanes_hypertension_project
+
+```
+2. **Restore dependencies:**
+```R
+renv::restore()
+
+```
+3. **Render the report:**
+```bash
 quarto render portfolio.qmd --to html
 
 ```
