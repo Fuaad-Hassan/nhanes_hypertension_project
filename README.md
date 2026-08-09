@@ -1,7 +1,3 @@
-Here is a polished, human-written version of your `README.md`. It drops the AI buzzwords ("testament", "critical highlight", "adherence to theory"), gets straight to the point, and puts your live report link right at the top where recruiters and reviewers will actually see it.
-
----
-
 # 🩺 NHANES Hypertension Analysis: Uncovering Undiagnosed Risk
 
 👉 **[Click here to view the full interactive report](https://fuaad-hassan.github.io/nhanes_hypertension_project/portfolio.html)**
