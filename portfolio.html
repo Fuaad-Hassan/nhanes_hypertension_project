@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 <meta name="author" content="Fuaad Hassan">
-<meta name="dcterms.date" content="2026-08-10">
+<meta name="dcterms.date" content="2026-09-28">
 
 <title>NHANES Hypertension Analysis: Uncovering Undiagnosed Risk</title>
 <style>
@@ -143,7 +143,7 @@ window.Quarto = {
     <div>
     <div class="quarto-title-meta-heading">Published</div>
     <div class="quarto-title-meta-contents">
-      <p class="date">August 10, 2026</p>
+      <p class="date">September 28, 2026</p>
     </div>
   </div>
   
@@ -165,7 +165,7 @@ window.Quarto = {
 <h2 class="anchored" data-anchor-id="data-pipeline-survey-methodology">Data Pipeline &amp; Survey Methodology</h2>
 <ol type="1">
 <li><strong>Ingest (<code>01_ingest.R</code>)</strong>: Downloaded demographic (<code>DEMO</code>), blood pressure (<code>BPX</code>), and questionnaire (<code>BPQ</code>) datasets directly from CDC servers via <code>nhanesA</code>.</li>
-<li><strong>Clean (<code>02_clean.R</code>)</strong>: Standardized blood pressure measurements, filtered for adult records (<span class="math inline">\(\ge 18\)</span>), and categorized patients into four distinct hypertension states: <em>Healthy</em>, <em>Managed</em>, <em>Uncontrolled</em>, and <em>Undiagnosed</em>.</li>
+<li><strong>Clean (<code>02_clean.R</code>)</strong>: Standardized blood pressure measurements, filtered for adult records (<span class="math inline">\(\ge 18\)</span>), and categorized patients into four distinct hypertension states: <em>Healthy</em>, <em>Managed</em>, <em>Uncontrolled</em>, and <em>Undiagnosed</em>. <strong>Note</strong>: This analysis uses the 2017 ACC/AHA threshold of 130/80 for biological hypertension. Because the survey question “Were you told by a doctor…” is based on historical clinical practice, there may be some inflation of the “Undiagnosed” category if respondents’ doctors were using the older 140/90 threshold.</li>
 <li><strong>Descriptive (<code>03_descriptive.R</code>)</strong>: Constructed a complex survey design object using <code>srvyr</code> and calculated population-weighted demographic summaries.</li>
 <li><strong>Inferential (<code>04_inferential.R</code>)</strong>: Restricted analysis strictly to the biologically hypertensive subpopulation using domain estimation (preserving full PSU/Strata variance architecture) and ran a survey-weighted logistic regression (<code>svyglm</code>).</li>
 </ol>
@@ -199,15 +199,7 @@ window.Quarto = {
 <span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a>    <span class="at">nest =</span> <span class="cn">TRUE</span></span>
 <span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>  )</span>
 <span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>htn_svy <span class="ot">&lt;-</span> full_svy <span class="sc">%&gt;%</span> <span class="fu">filter</span>(is_biological_htn <span class="sc">==</span> <span class="cn">TRUE</span>)</span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>model_svy <span class="ot">&lt;-</span> <span class="fu">svyglm</span>(</span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>  undiagnosed_flag <span class="sc">~</span> age <span class="sc">+</span> gender <span class="sc">+</span> income_ratio,</span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>  <span class="at">design =</span> htn_svy,</span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>  <span class="at">family =</span> <span class="fu">quasibinomial</span>()</span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>)</span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>model_results <span class="ot">&lt;-</span> <span class="fu">tidy</span>(model_svy, <span class="at">exponentiate =</span> <span class="cn">TRUE</span>, <span class="at">conf.int =</span> <span class="cn">TRUE</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>model_results <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"data/processed/model_results.rds"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 </div>
 </section>
@@ -276,28 +268,31 @@ Figure&nbsp;1: Weighted Proportion of Hypertension Status by Age Group
 <span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>      term <span class="sc">==</span> <span class="st">"age"</span>          <span class="sc">~</span> <span class="st">"Age (per year)"</span>,</span>
 <span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a>      term <span class="sc">==</span> <span class="st">"genderFemale"</span> <span class="sc">~</span> <span class="st">"Female (vs. Male)"</span>,</span>
 <span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a>      term <span class="sc">==</span> <span class="st">"income_ratio"</span> <span class="sc">~</span> <span class="st">"Poverty-Income Ratio"</span>,</span>
-<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> term</span>
-<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_formatted =</span> <span class="fu">ifelse</span>(p.value <span class="sc">&lt;</span> <span class="fl">0.001</span>, <span class="st">"&lt; 0.001"</span>, <span class="fu">sprintf</span>(<span class="st">"%.3f"</span>, p.value))</span>
-<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(</span>
-<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">Predictor =</span> term, </span>
-<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Odds Ratio (OR)</span><span class="st">`</span> <span class="ot">=</span> estimate, </span>
-<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">95% CI Lower</span><span class="st">`</span> <span class="ot">=</span> conf.low, </span>
-<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">95% CI Upper</span><span class="st">`</span> <span class="ot">=</span> conf.high, </span>
-<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">p-value</span><span class="st">`</span> <span class="ot">=</span> p_formatted</span>
-<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
-<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>, <span class="at">caption =</span> <span class="st">"Survey-Weighted Logistic Regression Model Results"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a>      <span class="fu">grepl</span>(<span class="st">"race"</span>, term)    <span class="sc">~</span> <span class="fu">gsub</span>(<span class="st">"race"</span>, <span class="st">"Race: "</span>, term),</span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>      term <span class="sc">==</span> <span class="st">"insuranceNo"</span>  <span class="sc">~</span> <span class="st">"No Insurance (vs. Yes)"</span>,</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a>      term <span class="sc">==</span> <span class="st">"insuranceYes"</span> <span class="sc">~</span> <span class="st">"Has Insurance"</span>,</span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> term</span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>    ),</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>    <span class="at">p_formatted =</span> <span class="fu">ifelse</span>(p.value <span class="sc">&lt;</span> <span class="fl">0.001</span>, <span class="st">"&lt; 0.001"</span>, <span class="fu">sprintf</span>(<span class="st">"%.3f"</span>, p.value))</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">select</span>(</span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">Predictor =</span> term, </span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">Odds Ratio (OR)</span><span class="st">`</span> <span class="ot">=</span> estimate, </span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">95% CI Lower</span><span class="st">`</span> <span class="ot">=</span> conf.low, </span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">95% CI Upper</span><span class="st">`</span> <span class="ot">=</span> conf.high, </span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a>    <span class="st">`</span><span class="at">p-value</span><span class="st">`</span> <span class="ot">=</span> p_formatted</span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">%&gt;%</span></span>
+<span id="cb3-22"><a href="#cb3-22" aria-hidden="true" tabindex="-1"></a>  <span class="fu">kable</span>(<span class="at">digits =</span> <span class="dv">3</span>, <span class="at">caption =</span> <span class="st">"Survey-Weighted Logistic Regression Model Results"</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <table class="caption-top table table-sm table-striped small">
 <caption>Survey-Weighted Logistic Regression Model Results</caption>
 <colgroup>
-<col style="width: 29%">
-<col style="width: 22%">
-<col style="width: 18%">
-<col style="width: 18%">
-<col style="width: 11%">
+<col style="width: 45%">
+<col style="width: 17%">
+<col style="width: 14%">
+<col style="width: 14%">
+<col style="width: 8%">
 </colgroup>
 <thead>
 <tr class="header">
@@ -311,24 +306,66 @@ Figure&nbsp;1: Weighted Proportion of Hypertension Status by Age Group
 <tbody>
 <tr class="odd">
 <td style="text-align: left;">Age (per year)</td>
-<td style="text-align: right;">0.963</td>
+<td style="text-align: right;">0.965</td>
 <td style="text-align: right;">0.954</td>
-<td style="text-align: right;">0.972</td>
+<td style="text-align: right;">0.975</td>
 <td style="text-align: left;">&lt; 0.001</td>
 </tr>
 <tr class="even">
 <td style="text-align: left;">Female (vs.&nbsp;Male)</td>
-<td style="text-align: right;">1.134</td>
-<td style="text-align: right;">0.812</td>
-<td style="text-align: right;">1.583</td>
-<td style="text-align: left;">0.428</td>
+<td style="text-align: right;">1.177</td>
+<td style="text-align: right;">0.811</td>
+<td style="text-align: right;">1.710</td>
+<td style="text-align: left;">0.326</td>
 </tr>
 <tr class="odd">
 <td style="text-align: left;">Poverty-Income Ratio</td>
-<td style="text-align: right;">1.081</td>
-<td style="text-align: right;">1.000</td>
-<td style="text-align: right;">1.168</td>
-<td style="text-align: left;">0.050</td>
+<td style="text-align: right;">1.108</td>
+<td style="text-align: right;">0.988</td>
+<td style="text-align: right;">1.242</td>
+<td style="text-align: left;">0.071</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Race: Other Hispanic</td>
+<td style="text-align: right;">0.462</td>
+<td style="text-align: right;">0.259</td>
+<td style="text-align: right;">0.826</td>
+<td style="text-align: left;">0.017</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Race: Non-Hispanic White</td>
+<td style="text-align: right;">0.506</td>
+<td style="text-align: right;">0.260</td>
+<td style="text-align: right;">0.982</td>
+<td style="text-align: left;">0.046</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Race: Non-Hispanic Black</td>
+<td style="text-align: right;">0.377</td>
+<td style="text-align: right;">0.223</td>
+<td style="text-align: right;">0.635</td>
+<td style="text-align: left;">0.004</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">Race: Non-Hispanic Asian</td>
+<td style="text-align: right;">0.597</td>
+<td style="text-align: right;">0.327</td>
+<td style="text-align: right;">1.091</td>
+<td style="text-align: left;">0.081</td>
+</tr>
+<tr class="even">
+<td style="text-align: left;">Race: Other Race - Including Multi-Racial</td>
+<td style="text-align: right;">0.831</td>
+<td style="text-align: right;">0.337</td>
+<td style="text-align: right;">2.052</td>
+<td style="text-align: left;">0.635</td>
+</tr>
+<tr class="odd">
+<td style="text-align: left;">No Insurance (vs.&nbsp;Yes)</td>
+<td style="text-align: right;">1.383</td>
+<td style="text-align: right;">0.662</td>
+<td style="text-align: right;">2.887</td>
+<td style="text-align: left;">0.323</td>
 </tr>
 </tbody>
 </table>
@@ -337,34 +374,24 @@ Figure&nbsp;1: Weighted Proportion of Hypertension Status by Age Group
 <div class="cell">
 <details open="" class="code-fold">
 <summary>Code</summary>
-<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>plot_data <span class="ot">&lt;-</span> model_results <span class="sc">%&gt;%</span> </span>
-<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  <span class="fu">filter</span>(term <span class="sc">!=</span> <span class="st">"(Intercept)"</span>) <span class="sc">%&gt;%</span></span>
-<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  <span class="fu">mutate</span>(</span>
-<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>    <span class="at">term =</span> <span class="fu">case_when</span>(</span>
-<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>      term <span class="sc">==</span> <span class="st">"age"</span>          <span class="sc">~</span> <span class="st">"Age (per year)"</span>,</span>
-<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>      term <span class="sc">==</span> <span class="st">"genderFemale"</span> <span class="sc">~</span> <span class="st">"Female (vs. Male)"</span>,</span>
-<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>      term <span class="sc">==</span> <span class="st">"income_ratio"</span> <span class="sc">~</span> <span class="st">"Poverty-Income Ratio"</span>,</span>
-<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>      <span class="cn">TRUE</span> <span class="sc">~</span> term</span>
-<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>    ),</span>
-<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">term =</span> <span class="fu">factor</span>(term, <span class="at">levels =</span> <span class="fu">c</span>(<span class="st">"Poverty-Income Ratio"</span>, <span class="st">"Female (vs. Male)"</span>, <span class="st">"Age (per year)"</span>))</span>
-<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>  )</span>
-<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(plot_data, <span class="fu">aes</span>(<span class="at">x =</span> estimate, <span class="at">y =</span> term)) <span class="sc">+</span></span>
-<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="dv">1</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"red"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
-<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">xmin =</span> conf.low, <span class="at">xmax =</span> conf.high), <span class="at">width =</span> <span class="fl">0.2</span>, <span class="at">color =</span> <span class="st">"#333333"</span>) <span class="sc">+</span></span>
-<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">4</span>, <span class="at">color =</span> <span class="st">"#2196F3"</span>) <span class="sc">+</span></span>
-<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_discrete</span>(<span class="at">expand =</span> <span class="fu">expansion</span>(<span class="at">mult =</span> <span class="fu">c</span>(<span class="fl">0.3</span>, <span class="fl">0.3</span>))) <span class="sc">+</span></span>
-<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
-<span id="cb4-19"><a href="#cb4-19" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
-<span id="cb4-20"><a href="#cb4-20" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Predictors of Remaining Undiagnosed with Hypertension"</span>,</span>
-<span id="cb4-21"><a href="#cb4-21" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Odds Ratio (OR &gt; 1 means higher risk of being undiagnosed)"</span>,</span>
-<span id="cb4-22"><a href="#cb4-22" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Predictor Variable"</span></span>
-<span id="cb4-23"><a href="#cb4-23" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
-<span id="cb4-24"><a href="#cb4-24" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
-<span id="cb4-25"><a href="#cb4-25" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">12</span>),</span>
-<span id="cb4-26"><a href="#cb4-26" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">11</span>, <span class="at">face =</span> <span class="st">"bold"</span>),</span>
-<span id="cb4-27"><a href="#cb4-27" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">11</span>, <span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">margin =</span> <span class="fu">margin</span>(<span class="at">r =</span> <span class="dv">15</span>))</span>
-<span id="cb4-28"><a href="#cb4-28" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode r code-with-copy"><code class="sourceCode r"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a>plot_data <span class="ot">&lt;-</span> <span class="fu">readRDS</span>(<span class="st">"data/processed/plot_data.rds"</span>)</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a><span class="fu">ggplot</span>(plot_data, <span class="fu">aes</span>(<span class="at">x =</span> estimate, <span class="at">y =</span> term)) <span class="sc">+</span></span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_vline</span>(<span class="at">xintercept =</span> <span class="dv">1</span>, <span class="at">linetype =</span> <span class="st">"dashed"</span>, <span class="at">color =</span> <span class="st">"red"</span>, <span class="at">linewidth =</span> <span class="dv">1</span>) <span class="sc">+</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_errorbar</span>(<span class="fu">aes</span>(<span class="at">xmin =</span> conf.low, <span class="at">xmax =</span> conf.high), <span class="at">width =</span> <span class="fl">0.2</span>, <span class="at">color =</span> <span class="st">"#333333"</span>) <span class="sc">+</span></span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  <span class="fu">geom_point</span>(<span class="at">size =</span> <span class="dv">4</span>, <span class="at">color =</span> <span class="st">"#2196F3"</span>) <span class="sc">+</span></span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  <span class="fu">scale_y_discrete</span>(<span class="at">expand =</span> <span class="fu">expansion</span>(<span class="at">mult =</span> <span class="fu">c</span>(<span class="fl">0.3</span>, <span class="fl">0.3</span>))) <span class="sc">+</span></span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme_minimal</span>() <span class="sc">+</span></span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="fu">labs</span>(</span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>    <span class="at">title =</span> <span class="st">"Predictors of Remaining Undiagnosed with Hypertension"</span>,</span>
+<span id="cb4-11"><a href="#cb4-11" aria-hidden="true" tabindex="-1"></a>    <span class="at">x =</span> <span class="st">"Odds Ratio (OR &gt; 1 means higher risk of being undiagnosed)"</span>,</span>
+<span id="cb4-12"><a href="#cb4-12" aria-hidden="true" tabindex="-1"></a>    <span class="at">y =</span> <span class="st">"Predictor Variable"</span></span>
+<span id="cb4-13"><a href="#cb4-13" aria-hidden="true" tabindex="-1"></a>  ) <span class="sc">+</span></span>
+<span id="cb4-14"><a href="#cb4-14" aria-hidden="true" tabindex="-1"></a>  <span class="fu">theme</span>(</span>
+<span id="cb4-15"><a href="#cb4-15" aria-hidden="true" tabindex="-1"></a>    <span class="at">plot.title =</span> <span class="fu">element_text</span>(<span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">size =</span> <span class="dv">12</span>),</span>
+<span id="cb4-16"><a href="#cb4-16" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.text.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">11</span>, <span class="at">face =</span> <span class="st">"bold"</span>),</span>
+<span id="cb4-17"><a href="#cb4-17" aria-hidden="true" tabindex="-1"></a>    <span class="at">axis.title.y =</span> <span class="fu">element_text</span>(<span class="at">size =</span> <span class="dv">11</span>, <span class="at">face =</span> <span class="st">"bold"</span>, <span class="at">margin =</span> <span class="fu">margin</span>(<span class="at">r =</span> <span class="dv">15</span>))</span>
+<span id="cb4-18"><a href="#cb4-18" aria-hidden="true" tabindex="-1"></a>  )</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </details>
 <div class="cell-output-display">
 <div id="fig-forest-plot" class="quarto-figure quarto-figure-center quarto-float anchored">
@@ -388,6 +415,7 @@ Figure&nbsp;2: Forest Plot of Odds Ratios for Undiagnosed Hypertension
 <li><strong>Age:</strong> There is a statistically significant negative association between age and the odds of remaining undiagnosed (<strong>OR = 0.963, p &lt; 0.001</strong>). As age increases, patients are significantly less likely to remain undiagnosed, likely due to more frequent interactions with the healthcare system.</li>
 <li><strong>Income Ratio:</strong> Higher income shows a slight, marginally significant positive association with remaining undiagnosed (<strong>OR = 1.08, p = 0.0498</strong>).</li>
 <li><strong>Gender:</strong> There is no statistically significant difference in diagnosis rates between females and males in this cohort (<strong>OR = 1.13, p = 0.428</strong>), as the 95% confidence interval widely crosses 1.0.</li>
+<li><strong>Sociodemographic Adjustments:</strong> The model now adjusts for <strong>Race/Ethnicity</strong> and <strong>Health Insurance Status</strong>, significantly reducing omitted variable bias and offering a more clinically viable reflection of structural barriers to diagnosis.</li>
 </ul>
 <hr>
 </section>
