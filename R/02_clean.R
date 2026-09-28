@@ -7,12 +7,14 @@ if (!dir.exists(processed_dir)) dir.create(processed_dir, recursive = TRUE, show
 demo_raw <- readRDS("data/raw/DEMO_J.rds")
 bpx_raw <- readRDS("data/raw/BPX_J.rds")
 bpq_raw <- readRDS("data/raw/BPQ_J.rds")
+hiq_raw <- readRDS("data/raw/HIQ_J.rds")
 
 demo_clean <- demo_raw %>%
   select(
     SEQN, 
     age = RIDAGEYR, 
     gender = RIAGENDR, 
+    race = RIDRETH3,
     income_ratio = INDFMPIR,
     weight_mec = WTMEC2YR,   
     psu = SDMVPSU,          
@@ -22,12 +24,10 @@ demo_clean <- demo_raw %>%
 
 bpx_clean <- bpx_raw %>%
   select(SEQN, BPXSY1, BPXSY2, BPXSY3, BPXDI1, BPXDI2, BPXDI3) %>%
-  rowwise() %>% 
   mutate(
-    mean_sys = mean(c_across(BPXSY1:BPXSY3), na.rm = TRUE),
-    mean_dia = mean(c_across(BPXDI1:BPXDI3), na.rm = TRUE)
+    mean_sys = rowMeans(cbind(BPXSY1, BPXSY2, BPXSY3), na.rm = TRUE),
+    mean_dia = rowMeans(cbind(BPXDI1, BPXDI2, BPXDI3), na.rm = TRUE)
   ) %>%
-  ungroup() %>%
   select(SEQN, mean_sys, mean_dia) %>%
   filter(!is.nan(mean_sys) & !is.nan(mean_dia))
 
@@ -38,9 +38,19 @@ bpq_clean <- bpq_raw %>%
   ) %>%
   filter(told_high_bp %in% c("Yes", "No"))
 
+hiq_clean <- hiq_raw %>%
+  select(
+    SEQN,
+    insurance = HIQ011 # "Covered by health insurance"
+  ) %>%
+  mutate(
+    insurance = ifelse(insurance == "Yes", "Yes", "No")
+  )
+
 final_df <- demo_clean %>%
   inner_join(bpx_clean, by = "SEQN") %>%
   inner_join(bpq_clean, by = "SEQN") %>%
+  left_join(hiq_clean, by = "SEQN") %>%
   mutate(
     is_biological_htn = (mean_sys >= 130 | mean_dia >= 80),
     is_diagnosed = (told_high_bp == "Yes"),
@@ -51,9 +61,11 @@ final_df <- demo_clean %>%
       is_biological_htn == TRUE  & is_diagnosed == FALSE ~ "Undiagnosed",
       TRUE ~ NA_character_
     ),
-
-    htn_status = factor(htn_status, levels = c("Healthy", "Managed", "Uncontrolled", "Undiagnosed"))
+    htn_status = factor(htn_status, levels = c("Healthy", "Managed", "Uncontrolled", "Undiagnosed")),
+    insurance = factor(insurance, levels = c("Yes", "No")),
+    race = factor(race)
   ) %>%
   filter(!is.na(htn_status))
+
 saveRDS(final_df, file.path(processed_dir, "nhanes_processed.rds"))
 message(sprintf("Cleaning complete. Processed %d adult records.", nrow(final_df)))

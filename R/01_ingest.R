@@ -5,7 +5,8 @@ cycle <- "_J"
 tables_to_fetch <- c(
   demo = paste0("DEMO", cycle),
   bp_exam = paste0("BPX", cycle),
-  bp_quest = paste0("BPQ", cycle)
+  bp_quest = paste0("BPQ", cycle),
+  health_ins = paste0("HIQ", cycle)
 )
 
 raw_data_dir <- "data/raw"

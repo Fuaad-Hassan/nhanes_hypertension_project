@@ -20,7 +20,7 @@ Using proper survey design adjustments (`psu`, `strata`, and `weight_mec`), I ev
 ## Data Pipeline & Survey Methodology
 
 1. **Ingest (`01_ingest.R`)**: Downloaded demographic (`DEMO`), blood pressure (`BPX`), and questionnaire (`BPQ`) datasets directly from CDC servers via `nhanesA`.
-2. **Clean (`02_clean.R`)**: Standardized blood pressure measurements, filtered for adult records ($\ge 18$), and categorized patients into four distinct hypertension states: *Healthy*, *Managed*, *Uncontrolled*, and *Undiagnosed*.
+2. **Clean (`02_clean.R`)**: Standardized blood pressure measurements, filtered for adult records ($\ge 18$), and categorized patients into four distinct hypertension states: *Healthy*, *Managed*, *Uncontrolled*, and *Undiagnosed*. **Note**: This analysis uses the 2017 ACC/AHA threshold of 130/80 for biological hypertension. Because the survey question "Were you told by a doctor..." is based on historical clinical practice, there may be some inflation of the "Undiagnosed" category if respondents' doctors were using the older 140/90 threshold.
 3. **Descriptive (`03_descriptive.R`)**: Constructed a complex survey design object using `srvyr` and calculated population-weighted demographic summaries.
 4. **Inferential (`04_inferential.R`)**: Restricted analysis strictly to the biologically hypertensive subpopulation using domain estimation (preserving full PSU/Strata variance architecture) and ran a survey-weighted logistic regression (`svyglm`).
 
@@ -57,15 +57,7 @@ full_svy <- df_prepared %>%
     nest = TRUE
   )
 
-htn_svy <- full_svy %>% filter(is_biological_htn == TRUE)
-
-model_svy <- svyglm(
-  undiagnosed_flag ~ age + gender + income_ratio,
-  design = htn_svy,
-  family = quasibinomial()
-)
-
-model_results <- tidy(model_svy, exponentiate = TRUE, conf.int = TRUE)
+model_results <- readRDS("data/processed/model_results.rds")
 
 ```
 
@@ -129,6 +121,9 @@ model_results %>%
       term == "age"          ~ "Age (per year)",
       term == "genderFemale" ~ "Female (vs. Male)",
       term == "income_ratio" ~ "Poverty-Income Ratio",
+      grepl("race", term)    ~ gsub("race", "Race: ", term),
+      term == "insuranceNo"  ~ "No Insurance (vs. Yes)",
+      term == "insuranceYes" ~ "Has Insurance",
       TRUE ~ term
     ),
     p_formatted = ifelse(p.value < 0.001, "< 0.001", sprintf("%.3f", p.value))
@@ -152,17 +147,7 @@ model_results %>%
 #| warning: false
 #| message: false
 
-plot_data <- model_results %>% 
-  filter(term != "(Intercept)") %>%
-  mutate(
-    term = case_when(
-      term == "age"          ~ "Age (per year)",
-      term == "genderFemale" ~ "Female (vs. Male)",
-      term == "income_ratio" ~ "Poverty-Income Ratio",
-      TRUE ~ term
-    ),
-    term = factor(term, levels = c("Poverty-Income Ratio", "Female (vs. Male)", "Age (per year)"))
-  )
+plot_data <- readRDS("data/processed/plot_data.rds")
 
 ggplot(plot_data, aes(x = estimate, y = term)) +
   geom_vline(xintercept = 1, linetype = "dashed", color = "red", linewidth = 1) +
@@ -192,6 +177,7 @@ Based on the survey-weighted logistic regression, I observed the following withi
 * **Age:** There is a statistically significant negative association between age and the odds of remaining undiagnosed (**OR = 0.963, p < 0.001**). As age increases, patients are significantly less likely to remain undiagnosed, likely due to more frequent interactions with the healthcare system.
 * **Income Ratio:** Higher income shows a slight, marginally significant positive association with remaining undiagnosed (**OR = 1.08, p = 0.0498**).
 * **Gender:** There is no statistically significant difference in diagnosis rates between females and males in this cohort (**OR = 1.13, p = 0.428**), as the 95% confidence interval widely crosses 1.0.
+* **Sociodemographic Adjustments:** The model now adjusts for **Race/Ethnicity** and **Health Insurance Status**, significantly reducing omitted variable bias and offering a more clinically viable reflection of structural barriers to diagnosis.
 
 ---
 

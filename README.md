@@ -44,7 +44,15 @@ To reproduce this analysis locally:
 renv::restore()
 ```
 
-3. **Render the report:**
+3. **Run the data pipeline:**
 ```bash
-quarto render portfolio.qmd --to html 
+Rscript R/01_ingest.R
+Rscript R/02_clean.R
+Rscript R/03_descriptive.R
+Rscript R/04_inferential.R
+```
+
+4. **Render the report:**
+```bash
+quarto render portfolio.qmd --to html
 ```

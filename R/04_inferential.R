@@ -22,8 +22,10 @@ full_svy <- df_prepared %>%
   )
 htn_svy <- full_svy %>%
   filter(is_biological_htn == TRUE)
+
+# Included race and insurance in the model
 model_svy <- svyglm(
-  undiagnosed_flag ~ age + gender + income_ratio,
+  undiagnosed_flag ~ age + gender + income_ratio + race + insurance,
   design = htn_svy,
   family = quasibinomial()
 )
@@ -31,6 +33,10 @@ model_svy <- svyglm(
 model_results <- tidy(model_svy, exponentiate = TRUE, conf.int = TRUE)
 message("--- Inferential Model Results ---")
 print(model_results)
+
+# Save model and results for Quarto
+saveRDS(model_svy, "data/processed/model_svy.rds")
+saveRDS(model_results, "data/processed/model_results.rds")
 
 # Forest Plot
 plot_data <- model_results %>% 
@@ -40,9 +46,14 @@ plot_data <- model_results %>%
       term == "age"          ~ "Age (per year)",
       term == "genderFemale" ~ "Female (vs. Male)",
       term == "income_ratio" ~ "Poverty-Income Ratio",
+      grepl("race", term)    ~ gsub("race", "Race: ", term),
+      term == "insuranceNo"  ~ "No Insurance (vs. Yes)",
+      term == "insuranceYes" ~ "Has Insurance",
       TRUE ~ term
     )
   )
+saveRDS(plot_data, "data/processed/plot_data.rds")
+
 p_forest <- ggplot(plot_data, aes(x = estimate, y = term)) +
   geom_vline(xintercept = 1, linetype = "dashed", color = "red", linewidth = 1) +
   geom_errorbar(aes(xmin = conf.low, xmax = conf.high), width = 0.2, color = "#333333") +
